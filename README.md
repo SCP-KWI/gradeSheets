@@ -17,7 +17,7 @@ no backend, no data leaves the machine.
 | Nachname | Vorname | 1a | 1b | … | Total | Note | … |
 |----------|---------|----|----|---|-------|------|---|
 | Max      |         | 1  | 1  | … |       |      |   |  ← per-exercise maximum
-| Arnold   | Colin   | 1  | 0.5| … |       |      |   |
+| Arnold   | Adam   | 1  | 0.5| … |       |      |   |
 | …        | …       |    |    |   |       |      |   |
 
 - Columns **1 = Nachname, 2 = Vorname**.
@@ -31,20 +31,6 @@ no backend, no data leaves the machine.
 
 *Punkte für Note 6* is optional and only prints as a footer line
 (`Note 6 für X Punkte`); leave it blank to omit the footer.
-
-## Deploy (static tier)
-
-```bash
-# on the server
-mkdir -p /opt/phisch_apps/gradesheets
-# copy index.html, css/, js/, docker-compose.yml, app.json into it (curl from raw GitHub)
-cd /opt/phisch_apps/gradesheets
-docker compose up -d
-```
-
-Then: add CNAME `gradesheets.schaffner.xyz → schaffnerxyz.duckdns.org`, create the NPM
-proxy host (without SSL first → confirm `.conf` exists → add SSL), and add an entry to
-`dashboard/apps.json` (see `app.json`) → restart the dashboard container.
 
 ## Libraries (vendored in `js/`)
 
