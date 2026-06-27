@@ -1,0 +1,6 @@
+# Never commit real student data / sample point tables
+*.ods
+*.xlsx
+*.xls
+*.csv
+test-sample.*

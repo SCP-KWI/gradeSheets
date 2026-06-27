@@ -1,0 +1,87 @@
+My App Platform — Setup Reference
+Server & Infrastructure
+
+Home server running Ubuntu, username pip
+Docker managed via Portainer
+Nginx Proxy Manager (NPM) for reverse proxying, container name nginx-proxy-manager
+All app containers must join the nginxproxymanager_default Docker network
+NPM data lives at /home/pip/docker/npm/data/
+
+Domain & DNS
+
+Domain: schaffner.xyz managed at Hostpoint
+Dynamic IP handled by DuckDNS: schaffnerxyz.duckdns.org
+Each new app gets its own subdomain CNAME in Hostpoint: appname.schaffner.xyz → schaffnerxyz.duckdns.org
+SSL certificates via Let's Encrypt through NPM (request after DNS propagates, ~5 min)
+Wildcard A/AAAA records are locked by Hostpoint, so each subdomain needs its own explicit CNAME
+
+App Files Location
+
+All apps live under /opt/phisch_apps/ on the server
+Each app has its own folder: /opt/phisch_apps/appname/
+Apps are deployed by SSH-ing in and running docker compose up -d from the app folder
+Portainer is used to monitor/restart containers but not to deploy (file mounts require deploying from the server directly)
+
+App Structure (Static Tier)
+Each static app folder contains:
+/opt/phisch_apps/appname/
+  index.html
+  css/
+  js/
+  docker-compose.yml
+  app.json
+docker-compose.yml template:
+yamlversion: "3.9"
+services:
+  appname:
+    image: nginx:alpine
+    container_name: appname
+    restart: unless-stopped
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    networks:
+      - nginxproxymanager_default
+networks:
+  nginxproxymanager_default:
+    external: true
+app.json template:
+json{
+  "name": "App Display Name",
+  "description": "One sentence description.",
+  "icon": "🔧",
+  "route": "https://appname.schaffner.xyz",
+  "tags": ["KWI"],
+  "tier": "static"
+}
+Dashboard
+
+Lives at https://apps.schaffner.xyz
+Container name: phisch_apps-dashboard
+Config at /opt/phisch_apps/dashboard/apps.json
+Adding a new app = add an entry to apps.json + restart dashboard container:
+
+bashcd /opt/phisch_apps/dashboard && docker compose restart
+NPM — Known Gotcha
+NPM has a bug where saving a proxy host while simultaneously requesting an SSL cert can silently fail (no .conf file gets written to /home/pip/docker/npm/data/nginx/proxy_host/). Always:
+
+Create the proxy host without SSL first → verify the .conf file appears
+Then edit it to add the SSL certificate separately
+
+Checklist for Each New App
+
+ Create folder /opt/phisch_apps/appname/
+ Add index.html, assets, docker-compose.yml, app.json
+ Use curl https://raw.githubusercontent.com/... to download files (never save via browser)
+ docker compose up -d from the app folder
+ Add CNAME appname.schaffner.xyz → schaffnerxyz.duckdns.org in Hostpoint
+ Wait ~5 min for DNS propagation (nslookup appname.schaffner.xyz)
+ NPM: create proxy host (no SSL) → confirm .conf file exists → add SSL cert
+ Add entry to dashboard/apps.json with full https:// route → restart dashboard
+ Test in incognito window (avoid browser cache issues)
+
+Existing Apps
+
+apps.schaffner.xyz → dashboard (phisch_apps-dashboard)
+bildlitrainer.schaffner.xyz → SchuelerInnen Bildli Trainer (schuelerInnenBildliTrainer)
+photos.schaffner.xyz → Immich photo server
+cloud.schaffner.xyz → Nextcloud

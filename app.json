@@ -1,0 +1,8 @@
+{
+  "name": "Notenblätter",
+  "description": "Erstellt A5-Notenblätter (PDF) aus einer Punktetabelle.",
+  "icon": "📄",
+  "route": "https://gradesheets.schaffner.xyz",
+  "tags": ["KWI"],
+  "tier": "static"
+}
