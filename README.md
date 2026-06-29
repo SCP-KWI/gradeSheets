@@ -20,10 +20,13 @@ no backend, no data leaves the machine.
 | Arnold   | Colin   | 1  | 0.5| … |       |      |   |
 | …        | …       |    |    |   |       |      |   |
 
-- Columns **1 = Nachname, 2 = Vorname**.
-- Exercise columns are everything between *Vorname* and the first
-  `Total` / `Note` / `Punkte` column (extra columns to the right are ignored).
-- A row whose Nachname is **`Max`** supplies the maximum points per exercise.
+- **Name columns** are auto-detected: either one column (e.g. `Student name`)
+  or two (`Nachname`, `Vorname` → rendered "Vorname Nachname"). Any leading
+  text columns before the first numeric column count as the name.
+- **Exercise columns** are the numeric columns between the name column(s) and
+  the first summary column (`Total` / `Sum` / `Note` …); extra columns to the
+  right are ignored.
+- A row whose first cell is **`Max`** supplies the maximum points per exercise.
 - Empty rows and a trailing class-average row (no name) are skipped.
 - The **grade is read directly from the table** — a `Note` column, or
   `Note gerundet` if present (preferred). It is *not* recalculated, so whatever

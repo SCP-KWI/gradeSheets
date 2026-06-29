@@ -66,34 +66,70 @@ function norm(v) {
 
 /* --------------------------- parsing ------------------------------ */
 
+// Parse a numeric cell; blank / non-numeric -> null (so we can tell text
+// columns apart from number columns).
+function numOrNull(v) {
+  const s = String(v == null ? "" : v).trim().replace(",", ".");
+  if (s === "") return null;
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+
 // Turn a sheet (array-of-arrays) into {exercises, max, students}.
+//
+// The layout is detected, not assumed: the table may have one name column
+// ("Student name") or several ("Nachname", "Vorname"). The "Max" row tells us
+// which columns are exercises — exercise cells in that row are numbers, name
+// cells are text/blank.
 function parseTable(rows) {
   if (!rows.length) throw new Error("Die Datei enthält keine Daten.");
 
   const header = rows[0].map(norm);
 
-  // Find where the exercise columns end: the first column whose header is
-  // Total / Note / Punkte / Durchschnitt etc. Exercises live between the
-  // name columns (0 = Nachname, 1 = Vorname) and that boundary.
-  const stopRe = /^(total|note|punkte|summe|durchschnitt|schnitt|mittel)/i;
+  // Locate the "Max" row (its first cell is "Max"); it holds per-exercise maxima.
+  let maxRow = null;
+  let maxRowIdx = -1;
+  for (let r = 1; r < rows.length; r++) {
+    if (norm((rows[r] || [])[0]).toLowerCase() === "max") {
+      maxRow = rows[r];
+      maxRowIdx = r;
+      break;
+    }
+  }
+  if (!maxRow) {
+    throw new Error('Keine "Max"-Zeile gefunden. Eine Zeile muss in der ersten Spalte "Max" enthalten und die maximale Punktzahl pro Aufgabe angeben.');
+  }
+
+  // Name columns are the leading columns whose Max-row cell is NOT a number;
+  // the first numeric cell marks the start of the exercises.
+  let firstEx = 0;
+  while (firstEx < header.length && numOrNull(maxRow[firstEx]) === null) firstEx++;
+  if (firstEx === 0) {
+    throw new Error("Konnte keine Namensspalte erkennen (die erste Spalte sollte Namen enthalten).");
+  }
+  const nameCols = [];
+  for (let c = 0; c < firstEx; c++) nameCols.push(c);
+
+  // Exercises run from the first numeric column up to the first summary column
+  // (Total / Sum / Note / …).
+  const stopRe = /^(total|sum|summe|note|punkte|points|durchschnitt|schnitt|mittel|rang|platz)/i;
   let endCol = header.length;
-  for (let c = 2; c < header.length; c++) {
+  for (let c = firstEx; c < header.length; c++) {
     if (stopRe.test(header[c])) { endCol = c; break; }
   }
   const exCols = [];
-  for (let c = 2; c < endCol; c++) {
-    if (header[c] !== "") exCols.push(c);
+  for (let c = firstEx; c < endCol; c++) {
+    if (header[c] !== "" && numOrNull(maxRow[c]) !== null) exCols.push(c);
   }
   if (!exCols.length) {
-    throw new Error("Keine Aufgaben-Spalten gefunden (erwartet: Nachname, Vorname, dann die Aufgaben).");
+    throw new Error("Keine Aufgaben-Spalten gefunden.");
   }
   const exercises = exCols.map((c) => header[c]);
 
-  // Locate the grade column. The grade is taken straight from the table
-  // (the teacher's formula may vary), preferring a rounded column
-  // ("Note gerundet") over a raw "Note" column.
+  // Grade column — taken straight from the table (the teacher's formula may
+  // vary), preferring a rounded "Note gerundet" over a raw "Note".
   let gradeCol = -1;
-  for (let c = 2; c < header.length; c++) {
+  for (let c = 0; c < header.length; c++) {
     if (/note|grad/i.test(header[c])) {
       if (gradeCol === -1) gradeCol = c;
       if (/(gerund|rund)/i.test(header[c])) gradeCol = c;
@@ -103,42 +139,33 @@ function parseTable(rows) {
     throw new Error('Keine Noten-Spalte gefunden. Die Tabelle muss eine Spalte "Note" (oder "Note gerundet") mit der fertigen Note pro Schüler:in enthalten.');
   }
 
-  // Locate the "Max" row (Nachname === "Max"), giving per-exercise maxima.
-  let maxRow = null;
-  const dataRows = [];
-  for (let r = 1; r < rows.length; r++) {
-    const row = rows[r] || [];
-    const last = norm(row[0]);
-    const first = norm(row[1]);
-    if (!maxRow && last.toLowerCase() === "max") { maxRow = row; continue; }
-    // Skip empty rows and the trailing average row (no name at all).
-    if (last === "" && first === "") continue;
-    dataRows.push(row);
-  }
-  if (!maxRow) {
-    throw new Error('Keine "Max"-Zeile gefunden. Die erste Datenzeile muss in der Spalte Nachname "Max" enthalten und die maximale Punktzahl pro Aufgabe angeben.');
-  }
-
-  const num = (v) => {
-    const n = Number(String(v == null ? "" : v).replace(",", "."));
-    return isNaN(n) ? 0 : n;
+  // Build a display name. If the name columns are explicitly Vorname/Nachname,
+  // order them "Vorname Nachname"; otherwise join the name columns as given.
+  let firstCol = -1, lastCol = -1;
+  nameCols.forEach((c) => {
+    if (/vorname|first/i.test(header[c])) firstCol = c;
+    if (/nachname|surname|last/i.test(header[c])) lastCol = c;
+  });
+  const nameOf = (row) => {
+    if (firstCol >= 0 && lastCol >= 0) {
+      return [norm(row[firstCol]), norm(row[lastCol])].filter(Boolean).join(" ");
+    }
+    return nameCols.map((c) => norm(row[c])).filter(Boolean).join(" ");
   };
 
-  const max = exCols.map((c) => num(maxRow[c]));
+  const max = exCols.map((c) => numOrNull(maxRow[c]) || 0);
   const maxTotal = max.reduce((a, b) => a + b, 0);
 
-  const students = dataRows.map((row) => {
-    const last = norm(row[0]);
-    const first = norm(row[1]);
-    const points = exCols.map((c) => num(row[c]));
+  const students = [];
+  for (let r = 1; r < rows.length; r++) {
+    if (r === maxRowIdx) continue;
+    const row = rows[r] || [];
+    const name = nameOf(row);
+    if (name === "") continue; // empty row or trailing average row (no name)
+    const points = exCols.map((c) => numOrNull(row[c]) || 0);
     const total = points.reduce((a, b) => a + b, 0);
-    return {
-      name: [first, last].filter(Boolean).join(" "),
-      points,
-      total,
-      grade: fmtGrade(row[gradeCol]),
-    };
-  });
+    students.push({ name, points, total, grade: fmtGrade(row[gradeCol]) });
+  }
 
   return { exercises, max, maxTotal, students };
 }
