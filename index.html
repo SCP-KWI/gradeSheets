@@ -4,52 +4,148 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notenblätter erstellen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main>
-    <h1>📄 Notenblätter erstellen</h1>
-    <p class="lead">Punktetabelle hochladen → ein A5-Notenblatt pro Schüler:in als PDF.</p>
-
-    <form id="form">
-      <div class="field">
-        <label for="file">Punktetabelle (.xlsx / .ods)</label>
-        <input type="file" id="file" accept=".xlsx,.xls,.ods,.csv" required>
-        <p class="hint" id="fileInfo"></p>
-      </div>
-
-      <div class="field">
-        <label for="examName">Prüfungsname</label>
-        <input type="text" id="examName" placeholder="z. B. Prüfung Informatik" required>
-      </div>
-
-      <div class="field">
-        <label for="subtitle">Untertitel <span class="opt">(optional)</span></label>
-        <input type="text" id="subtitle" placeholder="z. B. Klasse 1d, Modul Digitale Daten 1">
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <label for="date">Datum</label>
-          <input type="date" id="date" required>
-        </div>
-        <div class="field">
-          <label for="grade6">Punkte für Note 6 <span class="opt">(optional, Fusszeile)</span></label>
-          <input type="number" id="grade6" step="any" min="0.5" placeholder="z. B. 18">
-          <p class="hint" id="grade6Hint"></p>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <div class="brand-badge"><span class="mi">grading</span></div>
+        <div class="brand-text">
+          <span class="brand-name">Notenblätter</span>
+          <span class="brand-tag">Grades</span>
         </div>
       </div>
+      <button class="theme-btn" id="theme-toggle" title="Hell / Dunkel" aria-label="Hell / Dunkel umschalten">
+        <span class="mi" id="theme-icon">dark_mode</span>
+      </button>
+    </div>
+  </header>
 
-      <button type="submit" id="submit">PDF erstellen &amp; herunterladen</button>
-    </form>
+  <main class="wrap page">
+    <div class="page-head">
+      <div class="eyebrow">Punktetabelle → PDF</div>
+      <h1>Notenblätter erstellen</h1>
+      <p class="lead">Lade die Punktetabelle hoch — du erhältst ein sauberes A5-Notenblatt pro Schüler:in als PDF.</p>
+    </div>
 
-    <div id="status" class="status" hidden></div>
-    <div id="preview" class="preview" hidden></div>
+    <div class="grid">
+      <!-- ===== Form ===== -->
+      <section class="card">
+        <form id="form">
+          <div class="field">
+            <label>Punktetabelle <span class="opt">(.xlsx / .ods / .csv)</span></label>
+            <label class="drop" id="drop" for="file">
+              <span class="drop-icon"><span class="mi">table_view</span></span>
+              <span class="drop-text">
+                <span class="drop-title">Tabelle hierher ziehen</span>
+                <span class="drop-sub">oder klicken, um eine Datei zu wählen</span>
+              </span>
+            </label>
+            <input type="file" id="file" accept=".xlsx,.xls,.ods,.csv" class="visually-hidden" required>
+            <p class="hint" id="fileInfo"></p>
+          </div>
+
+          <div class="field">
+            <label for="examName">Prüfungsname</label>
+            <input type="text" id="examName" placeholder="z. B. Prüfung Informatik" required>
+          </div>
+
+          <div class="field">
+            <label for="subtitle">Untertitel <span class="opt">(optional)</span></label>
+            <input type="text" id="subtitle" placeholder="z. B. Klasse 1d, Modul Digitale Daten 1">
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="date">Datum</label>
+              <input type="date" id="date" required>
+            </div>
+            <div class="field">
+              <label for="grade6">Punkte für Note 6 <span class="opt">(optional)</span></label>
+              <input type="number" id="grade6" step="any" min="0.5" placeholder="z. B. 18">
+              <p class="hint" id="grade6Hint"></p>
+            </div>
+          </div>
+
+          <button type="submit" id="submit" class="btn btn-primary btn-block">
+            <span class="mi">picture_as_pdf</span>PDF erstellen &amp; herunterladen
+          </button>
+        </form>
+
+        <div id="status" class="status" hidden></div>
+      </section>
+
+      <!-- ===== Preview / sample ===== -->
+      <aside class="side">
+        <div class="card">
+          <div class="sample-eyebrow mono">Vorschau · ein Blatt pro Schüler:in (A5)</div>
+          <div class="sheet" aria-hidden="true">
+            <div class="sheet-title">Prüfung Informatik</div>
+            <div class="sheet-sub">Klasse 1d, Modul Digitale Daten 1</div>
+            <div class="sheet-meta"><span class="k">Datum:</span> 02.07.2026</div>
+            <div class="sheet-meta"><span class="k">Name:</span> Adam Arnold</div>
+            <div class="sheet-tbl">
+              <div class="r"><span>Aufgabe 1a</span><span class="v">1 / 1</span></div>
+              <div class="r"><span>Aufgabe 1b</span><span class="v">0.5 / 1</span></div>
+              <div class="r"><span>Aufgabe 2</span><span class="v">3 / 4</span></div>
+              <div class="r total"><span>Total</span><span class="v">12.5 / 18</span></div>
+            </div>
+            <div class="sheet-note"><span>Note</span><span class="g">5.0</span></div>
+          </div>
+        </div>
+        <div id="preview" class="preview card" hidden></div>
+      </aside>
+    </div>
   </main>
 
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/pdfmake.min.js"></script>
   <script src="js/vfs_fonts.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    /* Progressive enhancement — theme toggle + drag&drop.
+       Kept separate from app.js so the app logic stays untouched. */
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      function apply(t) {
+        if (t === "dark") root.setAttribute("data-theme", "dark");
+        else root.removeAttribute("data-theme");
+        icon.textContent = t === "dark" ? "light_mode" : "dark_mode";
+      }
+      var saved = "light";
+      try { saved = localStorage.getItem("chalk-theme") || "light"; } catch (e) {}
+      apply(saved);
+      btn.addEventListener("click", function () {
+        var cur = root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+        var next = cur === "dark" ? "light" : "dark";
+        try { localStorage.setItem("chalk-theme", next); } catch (e) {}
+        apply(next);
+      });
+
+      var drop = document.getElementById("drop");
+      var input = document.getElementById("file");
+      if (drop && input) {
+        ["dragenter", "dragover"].forEach(function (t) {
+          drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("dragover"); });
+        });
+        ["dragleave", "dragend", "drop"].forEach(function (t) {
+          drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove("dragover"); });
+        });
+        drop.addEventListener("drop", function (e) {
+          var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if (!f) return;
+          try { var dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; } catch (err) {}
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
